@@ -9,6 +9,8 @@ import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.dailab.plistacontest.recommender.ContestMPRecommender;
+
 
 public class Client {
 
@@ -41,7 +43,7 @@ public class Client {
         }
 
         final Server server = new Server(Integer.parseInt(properties.getProperty("plista.port", "8080")));
-        server.setHandler(new ContestHandler(properties));
+        server.setHandler(new ContestHandler(properties, new ContestMPRecommender()));
 
         server.start();
         server.join();
