@@ -42,6 +42,17 @@ public final class DataModelHelper {
         return getDataModel(files);
     }
 
+    public static DataModel getDataModel(final int _days)
+                    throws IOException {
+
+        final String[] files = new String[_days];
+        for (int i = 0; i < _days; i++) {
+            files[i] = "m_data_" + DateHelper.getDateBefore(-i) + ".txt";
+        }
+
+        return getDataModel(files);
+    }
+
     /**
      * Creates an aggregated data model from the given files.
      * 
@@ -50,6 +61,10 @@ public final class DataModelHelper {
      */
     public static DataModel getDataModel(final String[] _files)
                     throws IOException {
+
+        if (_files == null) {
+            throw new IllegalArgumentException("String[] files can not be NULL");
+        }
 
         final SequenceInputStream sis = new SequenceInputStream(new DataEnumeration(_files));
         final File file = File.createTempFile("datamodel", "tmp");

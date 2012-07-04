@@ -31,9 +31,9 @@ import de.dailab.plistacontest.helper.MahoutWriter;
 public class ContestMPRecommender
                 implements ContestRecommender {
 
-    private Logger logger = LoggerFactory.getLogger(ContestMPRecommender.class);
+    private static Logger logger = LoggerFactory.getLogger(ContestMPRecommender.class);
 
-    public AbstractRecommender recommender;
+    public volatile AbstractRecommender recommender;
 
     private FalseItems falseItems = new FalseItems();
 
@@ -55,8 +55,8 @@ public class ContestMPRecommender
     private void init() {
 
         try {
-            this.dataModel = DataModelHelper.getDataModel();
-            this.recommender = new MostPopularItemsRecommender(dataModel);
+            this.dataModel = DataModelHelper.getDataModel(5);
+            this.recommender = new MostPopularItemsRecommender(this.dataModel);
         }
         catch (IOException e) {
             logger.error(e.getMessage());
@@ -71,14 +71,21 @@ public class ContestMPRecommender
     public List<ContestItem> recommend(String _client, String _item, String _description, String _limit) {
         final List<ContestItem> recList = new ArrayList<ContestItem>();
         try {
-            final List<RecommendedItem> tmp = this.recommender.recommend(Integer.parseInt(_client),
-                            Integer.parseInt(_limit), new MPRescorer(this.falseItems));
+            final AbstractRecommender tmpRec;
+
+            synchronized (this) {
+                tmpRec = this.recommender;
+            }
+
+            final List<RecommendedItem> tmp = tmpRec.recommend(Integer.parseInt(_client), Integer.parseInt(_limit),
+                            new MPRescorer(this.falseItems));
+
             for (RecommendedItem recommendedItem : tmp) {
                 recList.add(new ContestItem(recommendedItem.getItemID()));
             }
         }
         catch (TasteException e) {
-            this.logger.error(e.getMessage());
+            logger.error(e.getMessage());
         }
 
         return recList;
@@ -92,29 +99,48 @@ public class ContestMPRecommender
         // update the model after X impressions
         if (this.impressionCounter >= this.impressionCount) {
             this.impressionCounter = 0;
+            new Thread() {
 
-            try {
-                this.recommender = new MostPopularItemsRecommender(DataModelHelper.getDataModel());
-            }
-            catch (TasteException e) {
-                logger.error(e.getMessage());
-            }
-            catch (IOException e) {
-                logger.error(e.getMessage());
-            }
+                public void run() {
+                    update();
+                }
+
+            }.start();
+
+        }
+    }
+
+    private synchronized void update() {
+
+        try {
+            this.recommender = new MostPopularItemsRecommender(DataModelHelper.getDataModel(5));
+        }
+        catch (TasteException e) {
+            logger.error(e.getMessage());
+        }
+        catch (IOException e) {
+            logger.error(e.getMessage());
+        }
+    }
+
+    @Override
+    public void feedback(String _feedback) {
+        try {
+            final JSONObject jObj = (JSONObject) JSONValue.parse(_feedback);
+            final String client = ((JSONObject) jObj.get("client")).get("id").toString();
+            final String item = ((JSONObject) jObj.get("target")).get("id").toString();
+            // write info directly in MAHOUT format -> with pref 5
+            new Thread(new MahoutWriter("m_data_" + DateHelper.getDate() + ".txt", client + "," + item, 5)).start();
+        }
+        catch (Exception e) {
+            logger.error(e.getMessage());
         }
 
     }
 
     @Override
-    public void feedback(String _feedback) {
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
     public void error(final String _error) {
-        
+
         final JSONObject jObj = (JSONObject) JSONValue.parse(_error);
         if (jObj.get("error").toString().contains("mismatch or invalid items")) {
             for (ContestItem contestItem : this.lastResponseCache) {
