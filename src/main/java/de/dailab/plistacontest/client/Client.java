@@ -9,8 +9,7 @@ import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.dailab.plistacontest.recommender.ContestMPRecommender;
-
+import de.dailab.plistacontest.recommender.ContestRecommender;
 
 public class Client {
 
@@ -23,15 +22,9 @@ public class Client {
     public static void main(String[] args)
                     throws Exception {
 
-        
-        if (args.length > 1 && args[1] != null) {
-            PropertyConfigurator.configure(args[1]);
-        } else {
-            PropertyConfigurator.configure("log4j.properties");
-        }
-        
         final Properties properties = new Properties();
 
+        // load the team properties
         try {
             properties.load(new FileInputStream(args[0]));
         }
@@ -42,8 +35,29 @@ public class Client {
             logger.error(e.getMessage());
         }
 
+        ContestRecommender recommender = null;
+
+        if (args.length >= 2 && args[1] != null) {
+            try {
+                final Class<?> transformClass = Class.forName(args[1]);
+                recommender = (ContestRecommender) transformClass.newInstance();
+            }
+            catch (Exception e) {
+                logger.error(e.getMessage());
+            }
+        }
+
+        // configure log4j
+        if (args.length >= 3 && args[2] != null) {
+            PropertyConfigurator.configure(args[0]);
+        }
+        else {
+            PropertyConfigurator.configure("log4j.properties");
+        }
+
+        // set up and start server
         final Server server = new Server(Integer.parseInt(properties.getProperty("plista.port", "8080")));
-        server.setHandler(new ContestHandler(properties, new ContestMPRecommender()));
+        server.setHandler(new ContestHandler(properties, recommender));
 
         server.start();
         server.join();
