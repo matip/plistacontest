@@ -82,3 +82,7 @@ plistacontest.log.2012-06-30
 m_data_20120701.txt
 
 .DS_Store
+
+recommendedItems.ser
+
+target/classes/de/dailab/plistacontest/recommender/ContestMPRecommender$1.class
