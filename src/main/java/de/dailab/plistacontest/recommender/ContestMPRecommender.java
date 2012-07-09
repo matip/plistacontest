@@ -77,7 +77,7 @@ public class ContestMPRecommender
                 tmpRec = this.recommender;
             }
 
-            final List<RecommendedItem> tmp = tmpRec.recommend(Integer.parseInt(_client), Integer.parseInt(_limit),
+            final List<RecommendedItem> tmp = tmpRec.recommend(Long.parseLong(_client), Integer.parseInt(_limit),
                             new MPRescorer(this.falseItems));
 
             for (RecommendedItem recommendedItem : tmp) {
@@ -85,6 +85,10 @@ public class ContestMPRecommender
             }
         }
         catch (TasteException e) {
+            logger.error(e.getMessage());
+        }
+        catch (Exception e) {
+            e.printStackTrace();
             logger.error(e.getMessage());
         }
 
@@ -98,6 +102,7 @@ public class ContestMPRecommender
         this.impressionCounter++;
         // update the model after X impressions
         if (this.impressionCounter >= this.impressionCount) {
+
             this.impressionCounter = 0;
             new Thread() {
 
@@ -110,16 +115,22 @@ public class ContestMPRecommender
         }
     }
 
-    private synchronized void update() {
-
+    private void update() {
+        AbstractRecommender recommender = null;
         try {
-            this.recommender = new MostPopularItemsRecommender(DataModelHelper.getDataModel(5));
+            recommender = new MostPopularItemsRecommender(DataModelHelper.getDataModel(5));
         }
         catch (TasteException e) {
             logger.error(e.getMessage());
         }
         catch (IOException e) {
             logger.error(e.getMessage());
+        }
+
+        if (recommender != null) {
+            synchronized (this) {
+                this.recommender = recommender;
+            }
         }
     }
 
