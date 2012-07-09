@@ -97,7 +97,7 @@ public class ContestHandler
         String response = null;
         // make string to json object
         final JSONObject jObj = (JSONObject) JSONValue.parse(_jsonString);
-        
+
         String msg = "unknown";
         try {
             msg = jObj.get("msg").toString();
@@ -110,10 +110,16 @@ public class ContestHandler
         logger.info(_jsonString);
 
         if (msg.equals(ClientConstants.MSG_IMPRESSION)) {
-            //hanlde recommendation impressions
+            // hanlde recommendation impressions
             response = handleImpression(jObj);
-          //send impression to the recommender
-            this.contestRecommender.impression(_jsonString);
+            // send impression to the recommender
+            new Thread() {
+
+                public void run() {
+                    contestRecommender.impression(_jsonString);
+                }
+
+            }.start();
 
             if (response != null) {
                 logger.info(response);
