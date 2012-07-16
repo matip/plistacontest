@@ -68,7 +68,7 @@ public final class DataModelHelper {
 
         final SequenceInputStream sis = new SequenceInputStream(new DataEnumeration(_files));
         final File file = File.createTempFile("datamodel", "tmp");
-        file.deleteOnExit();
+        //file.deleteOnExit();
 
         final FileOutputStream fostream = new FileOutputStream(file);
 
@@ -101,8 +101,15 @@ public final class DataModelHelper {
         catch (TasteException e) {
             // ignore
         }
+        //close all streams
         fostream.close();
         sis.close();
+        
+        //delete tmp file
+        boolean success = file.delete();
+        if (!success) {
+            logger.error("Delete " + file.getName() + " failed.");
+        }
 
         return dataModel;
     }
