@@ -168,7 +168,7 @@ public class ContestMPRecommender
 		} catch (Exception e) {
 			logger.error(e.getMessage());
 		}
-		serialize();
+		serialize(this.falseItems);
 	}
 
     private void serialize(final FalseItems _falseItemse) {
