@@ -149,19 +149,27 @@ public class ContestMPRecommender
 
     }
 
-    @Override
-    public void error(final String _error) {
-
-        final JSONObject jObj = (JSONObject) JSONValue.parse(_error);
-        if (jObj.get("error").toString().contains("mismatch or invalid items")) {
-            for (ContestItem contestItem : this.lastResponseCache) {
-                this.falseItems.addItem(contestItem.getId());
-            }
-
-            serialize(this.falseItems);
-        }
-
-    }
+	@Override
+	public void error(String _error) {
+		logger.error(_error);
+		// {"error":"invalid items returned:89194287","team":{"id":"65"},"code":null,"version":"1.0"}
+		try {
+			final JSONObject jErrorObj = (JSONObject) JSONValue.parse(_error);
+			if (jErrorObj.containsKey("error")) {
+				String error = jErrorObj.get("error").toString();
+				if (error.contains("invalid items returned:")) {
+					String tmpError = error.replace("invalid items returned:", "");
+					String[] errorItems = tmpError.split(",");
+					for (String errorItem : errorItems) {
+						this.falseItems.addItem(Long.parseLong(errorItem));
+					}
+				}
+			}
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+		serialize();
+	}
 
     private void serialize(final FalseItems _falseItemse) {
         try {
