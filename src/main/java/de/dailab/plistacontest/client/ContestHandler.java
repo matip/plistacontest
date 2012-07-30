@@ -40,11 +40,13 @@ public class ContestHandler
         try {
             // set the item ID
             this.teamID = Integer.parseInt(_properties.getProperty("plista.teamId"));
+
+            // set propeties
+            _contestRecommender.setProperties(_properties);
         }
         catch (NumberFormatException e) {
             throw new IllegalArgumentException("TEAM ID property must be set");
         }
-
         this.contestRecommender = _contestRecommender;
 
     }
@@ -148,6 +150,7 @@ public class ContestHandler
         String repsonse = null;
 
         final String client = ((JSONObject) _jsonObject.get("client")).get("id").toString();
+        final String domain = ((JSONObject) _jsonObject.get("domain")).get("id").toString();
 
         // some impressions do not have an item id
         String id = "-1";
@@ -169,7 +172,8 @@ public class ContestHandler
 
             final StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.append("{\"msg\":\"result\",\"items\":[");
-            final List<ContestItem> recs = this.contestRecommender.recommend(client, id, _jsonObject.toString(), limit);
+            final List<ContestItem> recs = this.contestRecommender.recommend(client, id, domain,
+                            _jsonObject.toString(), limit);
 
             for (final Iterator<ContestItem> iterator = recs.iterator(); iterator.hasNext();) {
                 final ContestItem contestItem = iterator.next();

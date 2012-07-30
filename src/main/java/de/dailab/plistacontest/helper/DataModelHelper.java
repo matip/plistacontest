@@ -54,6 +54,25 @@ public final class DataModelHelper {
     }
 
     /**
+     * Get data files for n days for a certain domain
+     * 
+     * @param _days
+     * @param domain
+     * @return
+     * @throws IOException
+     */
+    public static DataModel getDataModel(final int _days, final String domain)
+                    throws IOException {
+
+        final String[] files = new String[_days];
+        for (int i = 0; i < _days; i++) {
+            files[i] = domain + "_m_data_" + DateHelper.getDateBefore(-i) + ".txt";
+        }
+
+        return getDataModel(files);
+    }
+
+    /**
      * Creates an aggregated data model from the given files.
      * 
      * @return
@@ -68,7 +87,7 @@ public final class DataModelHelper {
 
         final SequenceInputStream sis = new SequenceInputStream(new DataEnumeration(_files));
         final File file = File.createTempFile("datamodel", "tmp");
-        //file.deleteOnExit();
+        // file.deleteOnExit();
 
         final FileOutputStream fostream = new FileOutputStream(file);
 
@@ -101,11 +120,11 @@ public final class DataModelHelper {
         catch (TasteException e) {
             // ignore
         }
-        //close all streams
+        // close all streams
         fostream.close();
         sis.close();
-        
-        //delete tmp file
+
+        // delete tmp file
         boolean success = file.delete();
         if (!success) {
             logger.error("Delete " + file.getName() + " failed.");
