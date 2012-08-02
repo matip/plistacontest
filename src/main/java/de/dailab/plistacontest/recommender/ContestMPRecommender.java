@@ -151,15 +151,13 @@ public class ContestMPRecommender
 
         if (this.counter.get(domain) >= this.impressionCount) {
             this.counter.put(domain, 0);
-            if (this.domainRecommender.containsKey(domain)) {
-                new Thread() {
+            new Thread() {
 
-                    public void run() {
-                        update(domain);
-                    }
+                public void run() {
+                    update(domain);
+                }
 
-                }.start();
-            }
+            }.start();
         }
     }
 
