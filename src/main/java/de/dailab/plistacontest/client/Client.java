@@ -37,14 +37,13 @@ public class Client {
 
         ContestRecommender recommender = null;
 
-        if (args.length >= 2 && args[1] != null) {
-            try {
-                final Class<?> transformClass = Class.forName(args[1]);
-                recommender = (ContestRecommender) transformClass.newInstance();
-            }
-            catch (Exception e) {
-                logger.error(e.getMessage());
-            }
+        try {
+            final Class<?> transformClass = Class.forName(args[1]);
+            recommender = (ContestRecommender) transformClass.newInstance();
+        }
+        catch (Exception e) {
+            logger.error(e.getMessage());
+            throw new IllegalArgumentException("No recommender specified or recommender not avialable.");
         }
 
         // configure log4j
