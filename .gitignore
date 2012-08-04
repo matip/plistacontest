@@ -102,3 +102,7 @@ target/classes/de/dailab/plistacontest/client/ContestHandler$1.class
 plistacontest.log.2012-07-09
 
 *.class
+
+.classpath
+
+.project
