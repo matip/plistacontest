@@ -5,10 +5,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -26,12 +30,14 @@ import org.apache.mahout.cf.taste.recommender.RecommendedItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.dailab.plistacontest.helper.DateHelper;
+
 public class MostPopularItemsRecommender
                 extends AbstractRecommender {
 
     private final Logger logger = LoggerFactory.getLogger(MostPopularItemsRecommender.class);
 
-    private final List<Entry<Long, Integer>> mostPopluarItems = new ArrayList<Map.Entry<Long, Integer>>();
+    private final List<Entry<Long, Double>> mostPopluarItems = new ArrayList<Map.Entry<Long, Double>>();
 
     // private Map<Long, Map<Long, Integer>> recommended = new HashMap<Long, Map<Long, Integer>>();
 
@@ -41,12 +47,12 @@ public class MostPopularItemsRecommender
      * @param _dataModel
      * 
      * */
-    public MostPopularItemsRecommender(final DataModel _dataModel)
+    public MostPopularItemsRecommender(final DataModel _dataModel, final boolean _timeboost)
                     throws TasteException {
         super(_dataModel);
 
         // process the most popular items of the dataset amongst all users
-        List<Entry<Long, Integer>> sortedList = sortByValue(countItems());
+        List<Entry<Long, Double>> sortedList = sortByValue(countItems(_timeboost));
         // revert list, so that the item with the most entries is on top>
         Collections.reverse(sortedList);
         this.mostPopluarItems.addAll(sortedList);
@@ -55,14 +61,28 @@ public class MostPopularItemsRecommender
     }
 
     /**
-     * * Counts all items in the dataset. * * @return * @throws TasteException
+     * @param _dataModel
+     * 
      * */
-    private Map<Long, Integer> countItems()
+    public MostPopularItemsRecommender(final DataModel _dataModel)
+                    throws TasteException {
+        this(_dataModel, false);
+    }
+
+    /**
+     * Counts all items in the dataset.
+     * 
+     * @param _timeaware
+     *            if true, current items are boosted
+     * @return
+     * @throws TasteException
+     */
+    private Map<Long, Double> countItems(final boolean _timeaware)
                     throws TasteException {
 
         final LongPrimitiveIterator lpi = this.getDataModel().getUserIDs();
 
-        final Map<Long, Integer> map = new TreeMap<Long, Integer>();
+        final Map<Long, Double> map = new TreeMap<Long, Double>();
 
         // iterate over users
         while (lpi.hasNext()) {
@@ -74,18 +94,57 @@ public class MostPopularItemsRecommender
             while (iIter.hasNext()) {
 
                 long itemId = iIter.next();
+                double boostfactor = 1;
+                if (_timeaware) {
+                    final Long timestamp = this.getDataModel().getPreferenceTime(uid, itemId);
+                    if (timestamp != null) {
 
+                        final Date time = new java.util.Date((long) timestamp);
+
+                        try {
+
+                            if (formatDate(time).equals(DateHelper.getDate())) {
+                                boostfactor = 3;
+                            }
+                            else if (formatDate(time).equals(DateHelper.getYesterday())) {
+                                boostfactor = 1.5;
+                            }
+                        }
+                        catch (Exception e) {
+                            this.logger.error(e.getMessage());
+                        }
+                    }
+                }
                 // count items
                 if (map.containsKey(itemId)) {
-                    map.put(itemId, map.get(itemId) + 1);
+                    map.put(itemId, map.get(itemId) + (1 * boostfactor));
                 }
                 else {
-                    map.put(itemId, 1);
+                    map.put(itemId, 1d);
                 }
             }
         }
 
         return map;
+    }
+
+    private String formatDate(Date _d)
+                    throws ParseException {
+        final DateFormat formatter = new SimpleDateFormat("yyyyMMdd");
+        return formatter.format(_d);
+
+    }
+
+    /**
+     * Counts all items in the dataset.
+     * 
+     * @return
+     * @throws TasteException
+     */
+    private Map<Long, Double> countItems()
+                    throws TasteException {
+
+        return countItems(false);
     }
 
     public List<RecommendedItem> recommend(long userID, int howMany, IDRescorer rescorer)
@@ -148,10 +207,10 @@ public class MostPopularItemsRecommender
             fileIn.close();
         }
         catch (IOException e) {
-            //logger.error(e.getMessage());
+            // logger.error(e.getMessage());
         }
         catch (ClassNotFoundException e1) {
-            //logger.error(e1.getMessage());
+            // logger.error(e1.getMessage());
         }
     }
 
