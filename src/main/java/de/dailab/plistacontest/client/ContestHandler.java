@@ -2,6 +2,7 @@ package de.dailab.plistacontest.client;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -43,6 +44,8 @@ public class ContestHandler
 
             // set propeties
             _contestRecommender.setProperties(_properties);
+            
+            _contestRecommender.init();
         }
         catch (NumberFormatException e) {
             throw new IllegalArgumentException("TEAM ID property must be set");
@@ -62,7 +65,6 @@ public class ContestHandler
 
         if (_breq.getMethod().equals("POST")) {
             if (_breq.getContentLength() < 0) {
-
                 // handles first message from the server - returns OK
                 response(_response, _breq, null, false);
             }
@@ -72,7 +74,11 @@ public class ContestHandler
                 // handles all other request from the server: impressions etc.
                 String line = null;
                 while ((line = bufferedReader.readLine()) != null) {
+                    if (_breq.getContentType().equals("application/x-www-form-urlencoded; charset=utf-8")) {
+                        line = URLDecoder.decode(line, "utf-8");
+                    }
                     responseText = handleMessage(line);
+
                 }
                 bufferedReader.close();
                 response(_response, _breq, responseText, true);

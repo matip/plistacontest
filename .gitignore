@@ -106,3 +106,11 @@ plistacontest.log.2012-07-09
 .classpath
 
 .project
+
+target/maven-archiver/pom.properties
+
+target/plistacontest-0.0.1.jar
+
+target/surefire-reports/TEST-de.dailab.plistacontest.AppTest.xml
+
+target/surefire-reports/de.dailab.plistacontest.AppTest.txt

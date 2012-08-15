@@ -24,6 +24,12 @@ public interface ContestRecommender {
     public List<ContestItem> recommend(final String _client, final String _item, final String _domain,
                     final String _description, final String _limit);
 
+    
+    /**
+     * This method is colled by the contest handler at startup
+     */
+    public void init();
+    
     /**
      * Impression Information from the Plista server is send to this method
      * 

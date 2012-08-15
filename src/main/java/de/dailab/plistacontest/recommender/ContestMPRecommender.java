@@ -59,20 +59,11 @@ public class ContestMPRecommender
     // multicounter for different recommender
     final Map<String, Integer> counter = new HashMap<String, Integer>();
 
-    /**
-     * Constructor - calls init method.
-     */
-    public ContestMPRecommender() {
+    public void init() {
 
         // set properties
         this.impressionCount = Integer.parseInt(properties.getProperty("plista.impressionCount", "30"));
         this.numberOfDays = Integer.parseInt(properties.getProperty("plista.numOfDays", "5"));
-
-        // set up recommender
-        init();
-    }
-
-    private void init() {
 
         // get all data files for the different domains
         final File dir = new File(".");
@@ -92,8 +83,11 @@ public class ContestMPRecommender
         // create domain MP Recommender
         for (String d : domains) {
             try {
-                this.domainRecommender.put(d,
-                                new MostPopularItemsRecommender(DataModelHelper.getDataModel(this.numberOfDays, d)));
+                this.domainRecommender.put(
+                                d,
+                                new MostPopularItemsRecommender(DataModelHelper.getDataModel(this.numberOfDays, d),
+                                                Boolean.parseBoolean(properties
+                                                                .getProperty("plista.timeBoost", "false"))));
             }
             catch (IOException e) {
                 logger.error(e.getMessage());
@@ -164,7 +158,8 @@ public class ContestMPRecommender
     private void update(final String _domain) {
         AbstractRecommender recommender = null;
         try {
-            recommender = new MostPopularItemsRecommender(DataModelHelper.getDataModel(this.numberOfDays, _domain));
+            recommender = new MostPopularItemsRecommender(DataModelHelper.getDataModel(this.numberOfDays, _domain),
+                            Boolean.parseBoolean(properties.getProperty("plista.timeBoost", "false")));
         }
         catch (TasteException e) {
             logger.error(e.getMessage());
