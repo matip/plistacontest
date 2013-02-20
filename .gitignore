@@ -114,3 +114,11 @@ target/plistacontest-0.0.1.jar
 target/surefire-reports/TEST-de.dailab.plistacontest.AppTest.xml
 
 target/surefire-reports/de.dailab.plistacontest.AppTest.txt
+
+*.txt
+
+*.ser
+
+plistacontest.log.2013-02-15
+
+plistacontest.log.2013-02-19
