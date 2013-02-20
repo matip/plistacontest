@@ -87,7 +87,7 @@ public class ContestMPRecommender
                                 d,
                                 new MostPopularItemsRecommender(DataModelHelper.getDataModel(this.numberOfDays, d),
                                                 Boolean.parseBoolean(properties
-                                                                .getProperty("plista.timeBoost", "false"))));
+                                                                .getProperty("plista.timeBoost", "false")),d));
             }
             catch (IOException e) {
                 logger.error(e.getMessage());
@@ -118,11 +118,10 @@ public class ContestMPRecommender
             }
         }
         catch (TasteException e) {
-            logger.error(e.getMessage());
+            logger.error(e.toString());
         }
         catch (Exception e) {
-            e.printStackTrace();
-            logger.error(e.getMessage() + " DOMAIN: " + _domain);
+            logger.error(e.toString() + " DOMAIN: " + _domain);
         }
         return recList;
     }
@@ -159,7 +158,7 @@ public class ContestMPRecommender
         AbstractRecommender recommender = null;
         try {
             recommender = new MostPopularItemsRecommender(DataModelHelper.getDataModel(this.numberOfDays, _domain),
-                            Boolean.parseBoolean(properties.getProperty("plista.timeBoost", "false")));
+                            Boolean.parseBoolean(properties.getProperty("plista.timeBoost", "false")), _domain);
         }
         catch (TasteException e) {
             logger.error(e.getMessage());
