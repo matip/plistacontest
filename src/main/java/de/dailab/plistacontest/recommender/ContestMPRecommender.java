@@ -60,7 +60,6 @@ public class ContestMPRecommender
     final Map<String, Integer> counter = new HashMap<String, Integer>();
 
     public void init() {
-
         // set properties
         this.impressionCount = Integer.parseInt(properties.getProperty("plista.impressionCount", "30"));
         this.numberOfDays = Integer.parseInt(properties.getProperty("plista.numOfDays", "5"));

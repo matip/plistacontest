@@ -41,7 +41,7 @@ public class MostPopularItemsRecommender extends AbstractRecommender {
 	private RecommendedItems recommendedItems = new RecommendedItems();
 
 	private String domain;
-	
+
 	public String getDomain() {
 		return domain;
 	}
@@ -52,7 +52,8 @@ public class MostPopularItemsRecommender extends AbstractRecommender {
 	 * @param _domain
 	 * 
 	 * */
-	public MostPopularItemsRecommender(final DataModel _dataModel, final boolean _timeboost, final String _domain) throws TasteException {
+	public MostPopularItemsRecommender(final DataModel _dataModel, final boolean _timeboost, final String _domain)
+			throws TasteException {
 
 		super(_dataModel);
 
@@ -98,19 +99,20 @@ public class MostPopularItemsRecommender extends AbstractRecommender {
 			while (iIter.hasNext()) {
 
 				long itemId = iIter.next();
-				
+
 				double boostfactor = 1;
 				if (_timeaware) {
 					final Long timestamp = this.getDataModel().getPreferenceTime(uid, itemId);
 					if (timestamp != null) {
 						final Date time = new java.util.Date((long) timestamp);
+						//boost more current impressions
 						boostfactor = getBoostFactor(time);
 					}
 				}
 				
 				// count items
 				if (map.containsKey(itemId)) {
-					map.put(itemId, map.get(itemId) * boostfactor);
+					map.put(itemId, map.get(itemId) +  boostfactor);
 				} else {
 					map.put(itemId, 1d * boostfactor);
 				}
@@ -119,17 +121,29 @@ public class MostPopularItemsRecommender extends AbstractRecommender {
 
 		return map;
 	}
-	
+
 	private int getBoostFactor(final Date _itemTimeStamp) {
 		int boost = 1;
 		try {
-			if (formatDate(_itemTimeStamp).equals(DateHelper.getDate())) {
+
+			// letzte Stunde
+			if (DateHelper.getDateWithHours(-1).compareTo(_itemTimeStamp) < 0) {
+				boost = 80;
+			} else if (DateHelper.getDateWithHours(-2).compareTo(_itemTimeStamp) < 0) {
+			// letzten 2 Stunden
+				boost = 60;
+			} else if (DateHelper.getDateWithHours(-4).compareTo(_itemTimeStamp) < 0) {
+				// letzten 4 Stunden
+				boost = 40;
+			} else if (formatDate(_itemTimeStamp).equals(DateHelper.getDate())) {
+				//today
 				boost = 30;
 			} else if (formatDate(_itemTimeStamp).equals(DateHelper.getYesterday())) {
+				//yesterday
 				boost = 15;
 			}
 		} catch (Exception e) {
-			this.logger.error(e.getMessage());
+			this.logger.error(e.toString());
 		}
 		return boost;
 	}
@@ -141,7 +155,7 @@ public class MostPopularItemsRecommender extends AbstractRecommender {
 
 	public List<RecommendedItem> recommend(long userID, int howMany, IDRescorer rescorer) throws TasteException {
 		FastIDSet idSet = new FastIDSet();
-		
+
 		try {
 			idSet = this.getDataModel().getItemIDsFromUser(userID);
 		} catch (org.apache.mahout.cf.taste.common.NoSuchUserException e) {
@@ -181,7 +195,7 @@ public class MostPopularItemsRecommender extends AbstractRecommender {
 			out.writeObject(this.recommendedItems);
 			out.close();
 		} catch (IOException e) {
-			logger.error(e.getMessage());
+			logger.error(e.toString());
 		}
 	}
 
@@ -193,9 +207,9 @@ public class MostPopularItemsRecommender extends AbstractRecommender {
 			in.close();
 			fileIn.close();
 		} catch (IOException e) {
-			logger.error(e.getMessage());
+			logger.error(e.toString());
 		} catch (ClassNotFoundException e1) {
-			logger.error(e1.getMessage());
+			logger.error(e1.toString());
 		}
 	}
 

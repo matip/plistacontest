@@ -3,9 +3,19 @@ package de.dailab.plistacontest.helper;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 
 public final class DateHelper {
 
+	
+	public static Date getDateWithHours(int hours) {
+		final Calendar cal = Calendar.getInstance();
+		cal.add(Calendar.HOUR_OF_DAY, hours); 
+		return cal.getTime();
+		
+		
+	}
+	
 	/**
 	 * Date of today
 	 * @return date string with the format yyyyMMdd indicating today
