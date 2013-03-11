@@ -29,10 +29,10 @@ public class Client {
             properties.load(new FileInputStream(args[0]));
         }
         catch (IOException e) {
-            logger.error(e.getMessage());
+            logger.error(e.toString());
         }
         catch (Exception e) {
-            logger.error(e.getMessage());
+            logger.error(e.toString());
         }
 
         ContestRecommender recommender = null;
@@ -42,7 +42,7 @@ public class Client {
             recommender = (ContestRecommender) transformClass.newInstance();
         }
         catch (Exception e) {
-            logger.error(e.getMessage());
+            logger.error(e.toString());
             throw new IllegalArgumentException("No recommender specified or recommender not avialable.");
         }
 

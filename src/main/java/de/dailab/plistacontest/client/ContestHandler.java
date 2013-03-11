@@ -101,7 +101,6 @@ public class ContestHandler
      * @return the response to the contest server
      */
     private String handleMessage(final String _jsonString) {
-
         String response = null;
         // make string to json object
         final JSONObject jObj = (JSONObject) JSONValue.parse(_jsonString);
@@ -124,7 +123,7 @@ public class ContestHandler
             new Thread() {
 
                 public void run() {
-                    contestRecommender.impression(_jsonString);
+                	contestRecommender.impression(_jsonString);
                 }
 
             }.start();
@@ -181,16 +180,20 @@ public class ContestHandler
             final List<ContestItem> recs = this.contestRecommender.recommend(client, id, domain,
                             _jsonObject.toString(), limit);
 
-            for (final Iterator<ContestItem> iterator = recs.iterator(); iterator.hasNext();) {
-                final ContestItem contestItem = iterator.next();
-                stringBuilder.append("{\"id\":\"" + contestItem.getId() + "\"}");
-                if (iterator.hasNext()) {
-                    stringBuilder.append(",");
-                }
-            }
+            try {
+				for (final Iterator<ContestItem> iterator = recs.iterator(); iterator.hasNext();) {
+				    final ContestItem contestItem = iterator.next();
+				    stringBuilder.append("{\"id\":\"" + contestItem.getId() + "\"}");
+				    if (iterator.hasNext()) {
+				        stringBuilder.append(",");
+				    }
+				}
 
-            stringBuilder.append("],\"team\":{\"id\":" + this.teamID + "},\"version\":\"1.0\"}");
-            repsonse = stringBuilder.toString();
+				stringBuilder.append("],\"team\":{\"id\":" + this.teamID + "},\"version\":\"1.0\"}");
+				repsonse = stringBuilder.toString();
+			} catch (NullPointerException e) {
+				logger.error(e.toString());
+			}
         }
         logger.debug("RESPOND: " + repsonse);
         return repsonse;
