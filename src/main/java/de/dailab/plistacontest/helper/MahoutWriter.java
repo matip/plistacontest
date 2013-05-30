@@ -22,6 +22,11 @@ public class MahoutWriter
 
     private final boolean json;
 
+    /**
+     * @param _fileName
+     * @param _impression
+     * @param _rating
+     */
     public MahoutWriter(final String _fileName, String _impression, int _rating) {
         this(_fileName, _impression, _rating, true);
 
@@ -42,7 +47,6 @@ public class MahoutWriter
         else {
 
         }
-
     }
 
     public void writeJSONImpressions() {
@@ -52,7 +56,6 @@ public class MahoutWriter
         boolean write = false;
         FileWriter fw = null;
         try {
-
             write = Boolean.parseBoolean(((JSONObject) obj.get("item")).get("recommendable").toString());
         }
         catch (Exception e) {
@@ -64,7 +67,8 @@ public class MahoutWriter
                 fw = new FileWriter(this.fileName, true);
                 fw.append(((JSONObject) obj.get("client")).get("id").toString() + ","
                                 + ((JSONObject) obj.get("item")).get("id").toString() + "," + this.rating + ","
-                                + Calendar.getInstance().getTimeInMillis());
+                                //+ Calendar.getInstance().getTimeInMillis());
+                                + ((JSONObject) obj.get("item")).get("created").toString());
                 fw.append(System.getProperty("line.separator"));
             }
             catch (Exception e) {

@@ -26,6 +26,7 @@ import de.dailab.plistacontest.helper.DataModelHelper;
 import de.dailab.plistacontest.helper.DateHelper;
 import de.dailab.plistacontest.helper.FalseItems;
 import de.dailab.plistacontest.helper.MahoutWriter;
+import de.dailab.plistacontest.helper.StatsWriter;
 
 /**
  * Most Popular Recoommender for the plista contest
@@ -33,218 +34,213 @@ import de.dailab.plistacontest.helper.MahoutWriter;
  * @author till
  * 
  */
-public class ContestMPRecommender
-                implements ContestRecommender {
+public class ContestMPRecommender implements ContestRecommender {
 
-    private static Logger logger = LoggerFactory.getLogger(ContestMPRecommender.class);
+	private static Logger logger = LoggerFactory.getLogger(ContestMPRecommender.class);
 
-    public volatile AbstractRecommender recommender;
+	public volatile AbstractRecommender recommender;
 
-    // recommender map
-    private final Map<String, AbstractRecommender> domainRecommender = new HashMap<String, AbstractRecommender>();
+	// recommender map
+	private final Map<String, AbstractRecommender> domainRecommender = new HashMap<String, AbstractRecommender>();
 
-    private FalseItems falseItems = new FalseItems();
+	private FalseItems falseItems = new FalseItems();
 
-    // number of impressions before a recommender is updated
-    private int impressionCount = 30;
+	// number of impressions before a recommender is updated
+	private int impressionCount = 30;
 
-    // number of days taken into account for the data model
-    private int numberOfDays = 5;
+	// number of days taken into account for the data model
+	private int numberOfDays = 5;
 
-    // don't recommend items after they were marked as invalid n times
-    private int ignoreAfter = 2;
+	// don't recommend items after they were marked as invalid n times
+	private int ignoreAfter = 2;
 
-    private Properties properties = new Properties();
+	private Properties properties = new Properties();
 
-    // multicounter for different recommender
-    final Map<String, Integer> counter = new HashMap<String, Integer>();
+	private String statFile = "stats_" + DateHelper.getDate() + ".txt";
 
-    public void init() {
-        // set properties
-        this.impressionCount = Integer.parseInt(properties.getProperty("plista.impressionCount", "30"));
-        this.numberOfDays = Integer.parseInt(properties.getProperty("plista.numOfDays", "5"));
+	// multicounter for different recommender
+	final Map<String, Integer> counter = new HashMap<String, Integer>();
 
-        // get all data files for the different domains
-        final File dir = new File(".");
-        final FileFilter fileFilter = new WildcardFileFilter("*_m_data*.txt");
-        final File[] files = dir.listFiles(fileFilter);
+	public void init() {
+		// set properties
+		this.impressionCount = Integer.parseInt(properties.getProperty("plista.impressionCount", "30"));
+		this.numberOfDays = Integer.parseInt(properties.getProperty("plista.numOfDays", "5"));
 
-        // get domains
-        List<String> domains = new ArrayList<String>();
-        for (int i = 0; i < files.length; i++) {
-            final String domainFile = files[i].getName();
-            final String domain = domainFile.substring(0, domainFile.indexOf("_"));
-            if (!domains.contains(domain)) {
-                domains.add(domain);
-            }
-        }
+		// get all data files for the different domains
+		final File dir = new File(".");
+		final FileFilter fileFilter = new WildcardFileFilter("*_m_data*.txt");
+		final File[] files = dir.listFiles(fileFilter);
 
-        // create domain MP Recommender
-        for (String d : domains) {
-            try {
-                this.domainRecommender.put(
-                                d,
-                                new MostPopularItemsRecommender(DataModelHelper.getDataModel(this.numberOfDays, d),
-                                                Boolean.parseBoolean(properties
-                                                                .getProperty("plista.timeBoost", "false")),d));
-            }
-            catch (IOException e) {
-                logger.error(e.getMessage());
-            }
-            catch (TasteException e) {
-                logger.error(e.getMessage());
-            }
-        }
+		// get domains
+		List<String> domains = new ArrayList<String>();
+		for (int i = 0; i < files.length; i++) {
+			final String domainFile = files[i].getName();
+			final String domain = domainFile.substring(0, domainFile.indexOf("_"));
+			if (!domains.contains(domain)) {
+				domains.add(domain);
+			}
+		}
 
-        // load false items
-        deserialize();
-    }
+		// create domain MP Recommender
+		for (String d : domains) {
+			try {
+				this.domainRecommender.put(
+						d,
+						new MostPopularItemsRecommender(DataModelHelper.getDataModel(this.numberOfDays, d), Boolean
+								.parseBoolean(properties.getProperty("plista.timeBoost", "false")), d));
+			} catch (IOException e) {
+				logger.error(e.getMessage());
+			} catch (TasteException e) {
+				logger.error(e.getMessage());
+			}
+		}
 
-    public List<ContestItem> recommend(String _client, String _item, String _domain, String _description, String _limit) {
-        final List<ContestItem> recList = new ArrayList<ContestItem>();
-        try {
-            final AbstractRecommender tmpRec;
+		// load false items
+		deserialize();
+	}
 
-            synchronized (this) {
-                tmpRec = this.domainRecommender.get(_domain);
-            }
+	public List<ContestItem> recommend(String _client, String _item, String _domain, String _description, String _limit) {
+		final List<ContestItem> recList = new ArrayList<ContestItem>();
+		
+		try {
+			final AbstractRecommender tmpRec;
 
-            final List<RecommendedItem> tmp = tmpRec.recommend(Long.parseLong(_client), Integer.parseInt(_limit),
-                            new MPRescorer(this.falseItems, this.ignoreAfter));
+			synchronized (this) {
+				tmpRec = this.domainRecommender.get(_domain);
+			}
 
-            for (RecommendedItem recommendedItem : tmp) {
-                recList.add(new ContestItem(recommendedItem.getItemID()));
-            }
-        }
-        catch (TasteException e) {
-            logger.error(e.toString());
-        }
-        catch (Exception e) {
-            logger.error(e.toString() + " DOMAIN: " + _domain);
-        }
-        return recList;
-    }
+			final List<RecommendedItem> tmp = tmpRec.recommend(Long.parseLong(_client), Integer.parseInt(_limit),
+					new MPRescorer(this.falseItems, this.ignoreAfter));
 
-    public void impression(String _impression) {
+			for (RecommendedItem recommendedItem : tmp) {
+				recList.add(new ContestItem(recommendedItem.getItemID()));
+			}
+		} catch (TasteException e) {
+			logger.error(e.toString());
+		} catch (Exception e) {
+			logger.error(e.toString() + " DOMAIN: " + _domain);
+		}
+		
+		new StatsWriter(this.statFile, "rec", _item, _limit);
+		
+		return recList;
+	}
 
-        final JSONObject jObj = (JSONObject) JSONValue.parse(_impression);
-        final String domain = ((JSONObject) jObj.get("domain")).get("id").toString();
+	public void impression(String _impression) {
 
-        // write info directly in MAHOUT format
-        new Thread(new MahoutWriter(domain + "_m_data_" + DateHelper.getDate() + ".txt", _impression, 3)).start();
+		final JSONObject jObj = (JSONObject) JSONValue.parse(_impression);
+		final String domain = ((JSONObject) jObj.get("domain")).get("id").toString();
 
-        // update impression counter
-        if (this.counter.containsKey(domain)) {
-            this.counter.put(domain, this.counter.get(domain) + 1);
-        }
-        else {
-            this.counter.put(domain, 1);
-        }
+		// write info directly in MAHOUT format
+		new Thread(new MahoutWriter(domain + "_m_data_" + DateHelper.getDate() + ".txt", _impression, 3)).start();
 
-        if (this.counter.get(domain) >= this.impressionCount) {
-            this.counter.put(domain, 0);
-            new Thread() {
+		// update impression counter
+		if (this.counter.containsKey(domain)) {
+			this.counter.put(domain, this.counter.get(domain) + 1);
+		} else {
+			this.counter.put(domain, 1);
+		}
 
-                public void run() {
-                    update(domain);
-                }
+		if (this.counter.get(domain) >= this.impressionCount) {
+			this.counter.put(domain, 0);
+			new Thread() {
 
-            }.start();
-        }
-    }
+				public void run() {
+					update(domain);
+				}
 
-    private void update(final String _domain) {
-        AbstractRecommender recommender = null;
-        try {
-            recommender = new MostPopularItemsRecommender(DataModelHelper.getDataModel(this.numberOfDays, _domain),
-                            Boolean.parseBoolean(properties.getProperty("plista.timeBoost", "false")), _domain);
-        }
-        catch (TasteException e) {
-            logger.error(e.getMessage());
-        }
-        catch (IOException e) {
-            logger.error(e.getMessage());
-        }
+			}.start();
+		}
+	}
 
-        if (recommender != null) {
-            synchronized (this) {
-                this.domainRecommender.put(_domain, recommender);
-            }
-        }
-    }
+	private void update(final String _domain) {
+		AbstractRecommender recommender = null;
+		try {
+			recommender = new MostPopularItemsRecommender(DataModelHelper.getDataModel(this.numberOfDays, _domain),
+					Boolean.parseBoolean(properties.getProperty("plista.timeBoost", "false")), _domain);
+		} catch (TasteException e) {
+			logger.error(e.getMessage());
+		} catch (IOException e) {
+			logger.error(e.getMessage());
+		}
 
-    @Override
-    public void feedback(String _feedback) {
-        try {
-            final JSONObject jObj = (JSONObject) JSONValue.parse(_feedback);
-            final String client = ((JSONObject) jObj.get("client")).get("id").toString();
-            final String item = ((JSONObject) jObj.get("target")).get("id").toString();
-            // write info directly in MAHOUT format -> with pref 5
-            new Thread(new MahoutWriter("m_data_" + DateHelper.getDate() + ".txt", client + "," + item, 5)).start();
-        }
-        catch (Exception e) {
-            logger.error(e.getMessage());
-        }
+		if (recommender != null) {
+			synchronized (this) {
+				this.domainRecommender.put(_domain, recommender);
+			}
+		}
+	}
 
-    }
+	@Override
+	public void feedback(String _feedback) {
+		try {
+			final JSONObject jObj = (JSONObject) JSONValue.parse(_feedback);
+			final String client = ((JSONObject) jObj.get("client")).get("id").toString();
+			final String item = ((JSONObject) jObj.get("target")).get("id").toString();
+			// write info directly in MAHOUT format -> with pref 5
+			new Thread(new MahoutWriter("m_data_" + DateHelper.getDate() + ".txt", client + "," + item, 5)).start();
 
-    @Override
-    public void error(String _error) {
-        logger.error(_error);
-        // {"error":"invalid items returned:89194287","team":{"id":"65"},"code":null,"version":"1.0"}
-        try {
-            final JSONObject jErrorObj = (JSONObject) JSONValue.parse(_error);
-            if (jErrorObj.containsKey("error")) {
-                String error = jErrorObj.get("error").toString();
-                if (error.contains("invalid items returned:")) {
-                    String tmpError = error.replace("invalid items returned:", "");
-                    String[] errorItems = tmpError.split(",");
-                    for (String errorItem : errorItems) {
-                        this.falseItems.addItem(Long.parseLong(errorItem));
-                    }
-                }
-            }
-        }
-        catch (Exception e) {
-            logger.error(e.getMessage());
-        }
-        serialize(this.falseItems);
-    }
+			// write stats
+			new StatsWriter(this.statFile, "feedback", "-1", item);
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
 
-    private void serialize(final FalseItems _falseItemse) {
-        try {
-            final FileOutputStream fileOut = new FileOutputStream("falseitems.ser");
-            final ObjectOutputStream out = new ObjectOutputStream(fileOut);
-            out.writeObject(_falseItemse);
-            out.close();
-        }
-        catch (IOException e) {
-            logger.error(e.getMessage());
-        }
-    }
+	}
 
-    private void deserialize() {
-        try {
-            final FileInputStream fileIn = new FileInputStream("falseitems.ser");
-            final ObjectInputStream in = new ObjectInputStream(fileIn);
-            this.falseItems = (FalseItems) in.readObject();
-            in.close();
-            fileIn.close();
-        }
-        catch (IOException e) {
-            logger.error(e.getMessage());
-        }
-        catch (ClassNotFoundException e1) {
-            logger.error(e1.getMessage());
-        }
-    }
+	@Override
+	public void error(String _error) {
+		logger.error(_error);
+		// {"error":"invalid items returned:89194287","team":{"id":"65"},"code":null,"version":"1.0"}
+		try {
+			final JSONObject jErrorObj = (JSONObject) JSONValue.parse(_error);
+			if (jErrorObj.containsKey("error")) {
+				String error = jErrorObj.get("error").toString();
+				if (error.contains("invalid items returned:")) {
+					String tmpError = error.replace("invalid items returned:", "");
+					String[] errorItems = tmpError.split(",");
+					for (String errorItem : errorItems) {
+						this.falseItems.addItem(Long.parseLong(errorItem));
+					}
+				}
+			}
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+		serialize(this.falseItems);
+	}
 
-    /**
-     * @param properties
-     *            the properties to set
-     */
-    public void setProperties(Properties properties) {
-        this.properties = properties;
-    }
+	private void serialize(final FalseItems _falseItemse) {
+		try {
+			final FileOutputStream fileOut = new FileOutputStream("falseitems.ser");
+			final ObjectOutputStream out = new ObjectOutputStream(fileOut);
+			out.writeObject(_falseItemse);
+			out.close();
+		} catch (IOException e) {
+			logger.error(e.getMessage());
+		}
+	}
+
+	private void deserialize() {
+		try {
+			final FileInputStream fileIn = new FileInputStream("falseitems.ser");
+			final ObjectInputStream in = new ObjectInputStream(fileIn);
+			this.falseItems = (FalseItems) in.readObject();
+			in.close();
+			fileIn.close();
+		} catch (IOException e) {
+			logger.error(e.getMessage());
+		} catch (ClassNotFoundException e1) {
+			logger.error(e1.getMessage());
+		}
+	}
+
+	/**
+	 * @param properties
+	 *            the properties to set
+	 */
+	public void setProperties(Properties properties) {
+		this.properties = properties;
+	}
 
 }
