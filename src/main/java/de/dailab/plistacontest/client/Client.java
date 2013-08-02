@@ -24,12 +24,16 @@ public class Client {
 
         final Properties properties = new Properties();
         String fileName = "";
-        String recommenderClass = args[1];
-        if(System.getProperty("plista.team") != null)
+        String recommenderClass = null;
+
+        if(args.length < 2)
             fileName = System.getProperty("plista.team");
-        else
+        else{
             fileName = args[0];
+            recommenderClass = args[1];
+        }
         // load the team properties
+        System.out.println(fileName);
         try {
             properties.load(new FileInputStream(fileName));
         }
@@ -40,7 +44,9 @@ public class Client {
             logger.error(e.getMessage());
         }
         ContestRecommender recommender = null;
-        recommenderClass = (properties.getProperty("plista.recommender").isEmpty() ? recommenderClass : args[1]);
+        System.out.println(properties.getProperty("plista.recommender"));
+        recommenderClass = (recommenderClass != null ? recommenderClass : properties.getProperty("plista.recommender"));
+        System.out.println("rc: " + recommenderClass);
         try {
             final Class<?> transformClass = Class.forName(recommenderClass);
             recommender = (ContestRecommender) transformClass.newInstance();
