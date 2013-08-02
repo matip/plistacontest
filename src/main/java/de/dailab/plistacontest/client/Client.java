@@ -20,13 +20,18 @@ public class Client {
     }
 
     public static void main(String[] args)
-                    throws Exception {
+            throws Exception {
 
         final Properties properties = new Properties();
-
+        String fileName = "";
+        String recommenderClass = args[1];
+        if(System.getProperty("plista.team") != null)
+            fileName = System.getProperty("plista.team");
+        else
+            fileName = args[0];
         // load the team properties
         try {
-            properties.load(new FileInputStream(args[0]));
+            properties.load(new FileInputStream(fileName));
         }
         catch (IOException e) {
             logger.error(e.getMessage());
@@ -34,18 +39,16 @@ public class Client {
         catch (Exception e) {
             logger.error(e.getMessage());
         }
-
         ContestRecommender recommender = null;
-
+        recommenderClass = (properties.getProperty("plista.recommender").isEmpty() ? recommenderClass : args[1]);
         try {
-            final Class<?> transformClass = Class.forName(args[1]);
+            final Class<?> transformClass = Class.forName(recommenderClass);
             recommender = (ContestRecommender) transformClass.newInstance();
         }
         catch (Exception e) {
             logger.error(e.getMessage());
             throw new IllegalArgumentException("No recommender specified or recommender not avialable.");
         }
-
         // configure log4j
         if (args.length >= 3 && args[2] != null) {
             PropertyConfigurator.configure(args[0]);
@@ -53,12 +56,11 @@ public class Client {
         else {
             PropertyConfigurator.configure("log4j.properties");
         }
-
         // set up and start server
         final Server server = new Server(Integer.parseInt(properties.getProperty("plista.port", "8080")));
         server.setHandler(new ContestHandler(properties, recommender));
         logger.debug("Serverport " + server.getConnectors()[0].getPort());
-        
+
         server.start();
         server.join();
     }
