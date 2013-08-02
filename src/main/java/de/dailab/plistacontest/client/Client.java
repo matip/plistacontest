@@ -33,7 +33,6 @@ public class Client {
             recommenderClass = args[1];
         }
         // load the team properties
-        System.out.println(fileName);
         try {
             properties.load(new FileInputStream(fileName));
         }
@@ -44,9 +43,7 @@ public class Client {
             logger.error(e.getMessage());
         }
         ContestRecommender recommender = null;
-        System.out.println(properties.getProperty("plista.recommender"));
         recommenderClass = (recommenderClass != null ? recommenderClass : properties.getProperty("plista.recommender"));
-        System.out.println("rc: " + recommenderClass);
         try {
             final Class<?> transformClass = Class.forName(recommenderClass);
             recommender = (ContestRecommender) transformClass.newInstance();
